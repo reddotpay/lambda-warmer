@@ -53,8 +53,8 @@ type Event struct {
 type Config struct {
 }
 
-// Handler handles AWS
-func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) error {
+// Handler handles AWS and returns if event is a warmer event
+func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) bool {
 	var (
 		payload Event
 		b, _    = json.Marshal(event)
@@ -65,7 +65,7 @@ func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) e
 	LastAccess = time.Now()
 
 	if !payload.Warmer {
-		return New(ErrCodeNotWarmerEvent)
+		return false
 	}
 
 	var (
@@ -120,5 +120,5 @@ func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) e
 		time.Sleep(time.Duration(delay) * time.Millisecond)
 	}
 
-	return nil
+	return true
 }
