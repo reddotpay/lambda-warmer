@@ -31,13 +31,14 @@ const (
 
 // Log defines log message
 type Log struct {
-	Action        string
-	Function      string
-	CorrelationID string
-	Count         int
-	Concurrency   int
-	Warm          bool
-	LastAccessed  time.Time
+	Action                string    `json:"action"`
+	Function              string    `json:"function"`
+	CorrelationID         string    `json:"correlationId"`
+	Count                 int       `json:"count"`
+	Concurrency           int       `json:"concurrency"`
+	Warm                  bool      `json:"warm"`
+	LastAccessed          time.Time `json:"lastAccessed"`
+	LastAccessedInSeconds float64   `json:"lastAccessedInSeconds"`
 }
 
 // Event defines Lambda warmer event
@@ -61,10 +62,9 @@ func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) b
 		_       = json.Unmarshal(b, &payload)
 	)
 
-	Warm = true
-	LastAccess = time.Now()
-
 	if !payload.Warmer {
+		Warm = true
+		LastAccess = time.Now()
 		return false
 	}
 
@@ -84,7 +84,7 @@ func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) b
 		invokeCount = defaultInvocation
 	}
 
-	log.Println(Log{
+	logMessage := Log{
 		Action:        "warmer",
 		Function:      funcName + ":" + funcVersion,
 		CorrelationID: correlationID,
@@ -92,7 +92,15 @@ func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) b
 		Concurrency:   invokeTotal,
 		Warm:          Warm,
 		LastAccessed:  LastAccess,
-	})
+	}
+	if !LastAccess.IsZero() {
+		logMessage.LastAccessedInSeconds = time.Now().Sub(LastAccess).Seconds()
+	}
+	b, _ = json.Marshal(logMessage)
+	log.Println(string(b))
+
+	Warm = true
+	LastAccess = time.Now()
 
 	if concurrency > 1 {
 		lambdaClient := lambda.New(session.New())
