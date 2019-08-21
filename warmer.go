@@ -54,17 +54,23 @@ type Config struct {
 }
 
 // Handler handles AWS
-func Handler(ctx context.Context, event Event, cfg ...Config) error {
+func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) error {
+	var (
+		payload Event
+		b, _    = json.Marshal(event)
+		_       = json.Unmarshal(b, &payload)
+	)
+
 	Warm = true
 	LastAccess = time.Now()
 
-	if !event.Warmer {
+	if !payload.Warmer {
 		return New(ErrCodeNotWarmerEvent)
 	}
 
 	var (
-		concurrency   = event.Concurrency
-		invokeCount   = event.WarmerInvocation
+		concurrency   = payload.Concurrency
+		invokeCount   = payload.WarmerInvocation
 		invokeTotal   = concurrency
 		correlationID = ""
 		delay         = defaultDelayInMilliSeconds
