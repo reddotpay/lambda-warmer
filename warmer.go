@@ -121,12 +121,15 @@ func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) b
 				WarmerConcurrency: concurrency,
 				CorrelationID:     correlationID,
 			})
-			lambdaClient.InvokeWithContext(ctx, &lambda.InvokeInput{
+			if _, err := lambdaClient.InvokeWithContext(ctx, &lambda.InvokeInput{
 				FunctionName:   aws.String(funcName + ":" + funcVersion),
 				InvocationType: aws.String(invocationType),
 				LogType:        aws.String("None"),
 				Payload:        b,
-			})
+			}); err != nil {
+				log.Println(err)
+			}
+
 		}
 	} else if invokeCount > 1 {
 		time.Sleep(time.Duration(delay) * time.Millisecond)
