@@ -64,7 +64,7 @@ func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) b
 		_             = json.Unmarshal(b, &payload)
 		concurrency   = payload.Concurrency
 		invokeCount   = payload.WarmerInvocation
-		invokeTotal   = concurrency
+		invokeTotal   = payload.WarmerConcurrency
 		delay         = defaultDelayInMilliSeconds
 		correlationID string
 	)
@@ -86,6 +86,10 @@ func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) b
 
 	if invokeCount < 1 {
 		invokeCount = defaultInvocation
+	}
+
+	if invokeTotal < 1 {
+		invokeTotal = concurrency
 	}
 
 	logMessage := Log{
