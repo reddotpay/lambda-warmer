@@ -52,29 +52,33 @@ type Event struct {
 
 // Config  defines Lambda warmer configurations
 type Config struct {
+	CorrelationID string
 }
 
 // Handler handles AWS and returns if event is a warmer event
 func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) bool {
 	var (
-		payload Event
-		b, _    = json.Marshal(event)
-		_       = json.Unmarshal(b, &payload)
+		payload       Event
+		config        Config
+		b, _          = json.Marshal(event)
+		_             = json.Unmarshal(b, &payload)
+		concurrency   = payload.Concurrency
+		invokeCount   = payload.WarmerInvocation
+		invokeTotal   = concurrency
+		delay         = defaultDelayInMilliSeconds
+		correlationID string
 	)
+
+	if cfg != nil {
+		config = cfg[0]
+		correlationID = config.CorrelationID
+	}
 
 	if !payload.Warmer {
 		Warm = true
 		LastAccess = time.Now()
 		return false
 	}
-
-	var (
-		concurrency   = payload.Concurrency
-		invokeCount   = payload.WarmerInvocation
-		invokeTotal   = concurrency
-		correlationID = ""
-		delay         = defaultDelayInMilliSeconds
-	)
 
 	if concurrency < 1 {
 		concurrency = defaultConcurrency
