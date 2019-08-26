@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -111,33 +112,39 @@ func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) b
 	LastAccess = time.Now()
 
 	if concurrency > 1 {
-		lambdaClient := lambda.New(session.New())
+		var (
+			waitgroup    sync.WaitGroup
+			lambdaClient = lambda.New(session.New())
+		)
 
 		for i := 2; i <= concurrency; i++ {
-			invocationType := "Event"
-			if i == concurrency {
-				invocationType = "RequestResponse"
-			}
-
-			b, _ := json.Marshal(Event{
-				Warmer:            true,
-				WarmerInvocation:  i,
-				WarmerConcurrency: concurrency,
-				CorrelationID:     correlationID,
-			})
-			if _, err := lambdaClient.InvokeWithContext(ctx, &lambda.InvokeInput{
-				FunctionName:   aws.String(funcName + ":" + funcVersion),
-				InvocationType: aws.String(invocationType),
-				LogType:        aws.String("None"),
-				Payload:        b,
-			}); err != nil {
-				log.Println(err)
-			}
-
+			waitgroup.Add(1)
+			go invokeLambda(&waitgroup, lambdaClient, i, concurrency, correlationID)
 		}
+
+		waitgroup.Wait()
 	} else if invokeCount > 1 {
 		time.Sleep(time.Duration(delay) * time.Millisecond)
 	}
 
 	return true
+}
+
+func invokeLambda(waitgroup *sync.WaitGroup, lambdaClient *lambda.Lambda, invocation, concurrency int, correlationID string) {
+	b, _ := json.Marshal(Event{
+		Warmer:            true,
+		WarmerInvocation:  invocation,
+		WarmerConcurrency: concurrency,
+		CorrelationID:     correlationID,
+	})
+	if _, err := lambdaClient.Invoke(&lambda.InvokeInput{
+		FunctionName:   aws.String(funcName + ":" + funcVersion),
+		InvocationType: aws.String("Event"),
+		LogType:        aws.String("None"),
+		Payload:        b,
+	}); err != nil {
+		log.Println(err)
+	}
+
+	waitgroup.Done()
 }
