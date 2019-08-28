@@ -139,7 +139,7 @@ func invokeLambda(waitgroup *sync.WaitGroup, lambdaClient *lambda.Lambda, invoca
 	})
 	if _, err := lambdaClient.Invoke(&lambda.InvokeInput{
 		FunctionName:   aws.String(funcName + ":" + funcVersion),
-		InvocationType: aws.String("Event"),
+		InvocationType: aws.String("RequestResponse"),
 		LogType:        aws.String("None"),
 		Payload:        b,
 	}); err != nil {
