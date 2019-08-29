@@ -114,7 +114,7 @@ func Handler(ctx context.Context, event map[string]interface{}, cfg ...Config) b
 	if concurrency > 1 {
 		var (
 			waitgroup    sync.WaitGroup
-			lambdaClient = lambda.New(session.New())
+			lambdaClient = lambda.New(session.New(), &aws.Config{MaxRetries: aws.Int(1)})
 		)
 
 		for i := 2; i <= concurrency; i++ {
