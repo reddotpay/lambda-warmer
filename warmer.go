@@ -27,7 +27,7 @@ var (
 const (
 	defaultConcurrency         = 1
 	defaultInvocation          = 1
-	defaultDelayInMilliSeconds = 75
+	defaultDelayInMilliSeconds = 125
 )
 
 // Log defines log message
